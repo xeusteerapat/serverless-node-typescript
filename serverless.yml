@@ -25,11 +25,11 @@ provider:
     - Effect: Allow
       Action:
         - dynamodb:Scan
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/Groups
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GROUPS_TABLE}
 
 functions:
   GetGroups:
-    handler: src/functions/handler
+    handler: src/functions/groups/getGroups.handler
     events:
       - http:
          method: get
