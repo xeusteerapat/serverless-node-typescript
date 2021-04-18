@@ -5,9 +5,21 @@ custom:
   webpack:
     webpackConfig: ./webpack.config.js
     includeModules: true
+  documentation:
+    api:
+      info:
+        version: v1.0.0
+        title: Udagram API
+        description: Serverless application for image sharing
+    models:
+      - name: GroupRequest
+        contentType: application/json
+        schema: ${file(validators/create-group-request.json)}
 
 plugins:
 - serverless-webpack
+- serverless-aws-documentation
+- serverless-reqvalidator-plugin
 
 provider:
   name: aws
@@ -44,9 +56,24 @@ functions:
          method: post
          path: groups
          cors: true
+         reqValidatorName: RequestBodyValidator
+         documentation:
+            summary: Create a new group
+            description: Create a new group
+            requestModels:
+              'application/json': GroupRequest
 
 resources:
   Resources:
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'request-body-validator'
+        RestApiId: 
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+
     GroupsDynamoDBTable:
       Type: AWS::DynamoDB::Table
       Properties:
