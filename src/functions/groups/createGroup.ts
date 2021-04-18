@@ -30,7 +30,7 @@ export const handler: APIGatewayProxyHandler = async (
     .promise();
 
   return {
-    statusCode: 200,
+    statusCode: 201,
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
