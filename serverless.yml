@@ -1,0 +1,52 @@
+service: 
+  name: serverless-node-typescript
+
+custom:
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+
+plugins:
+- serverless-webpack
+
+provider:
+  name: aws
+  region: ${opt:region, 'ap-southeast-1'}
+  runtime: nodejs14.x
+  stage: ${opt:stage, 'dev'}
+  apiGateway:
+    minimumCompressionSize: 1024
+    shouldStartNameWithService: true
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    GROUPS_TABLE: Groups-${self:provider.stage}
+  lambdaHashingVersion: 20201221
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/Groups
+
+functions:
+  GetGroups:
+    handler: src/functions/handler
+    events:
+      - http:
+         method: get
+         path: groups
+         cors: true
+
+resources:
+  Resources:
+    GroupsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.GROUPS_TABLE}
+
