@@ -5,13 +5,12 @@ import {
 } from 'aws-lambda';
 import 'source-map-support/register';
 import * as AWS from 'aws-sdk';
-import { middyfy } from '../../libs/lambda';
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 
 const groupsTable = process.env.GROUPS_TABLE;
 
-const handler: APIGatewayProxyHandler = async (
+export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   console.log('Processing event: ', event);
@@ -34,5 +33,3 @@ const handler: APIGatewayProxyHandler = async (
     }),
   };
 };
-
-export const mainGetGroups = middyfy(handler);
