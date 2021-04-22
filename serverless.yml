@@ -15,6 +15,9 @@ custom:
       - name: GroupRequest
         contentType: application/json
         schema: ${file(validators/create-group-request.json)}
+      - name: ImageRequest
+        contentType: application/json
+        schema: ${file(validators/create-image-request.json)}
 
 plugins:
 - serverless-webpack
@@ -44,6 +47,7 @@ provider:
       Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.GROUPS_TABLE}
     - Effect: Allow
       Action:
+        - dynamodb:PutItem
         - dynamodb:Query
       Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.IMAGES_TABLE}
     - Effect: Allow
@@ -56,23 +60,23 @@ functions:
     handler: src/functions/groups/getGroups.handler
     events:
       - http:
-         method: get
-         path: groups
-         cors: true
+          method: get
+          path: groups
+          cors: true
   
   CreateGroups:
     handler: src/functions/groups/createGroup.handler
     events:
       - http:
-         method: post
-         path: groups
-         cors: true
-         reqValidatorName: RequestBodyValidator
-         documentation:
-            summary: Create a new group
-            description: Create a new group
-            requestModels:
-              'application/json': GroupRequest
+          method: post
+          path: groups
+          cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+              summary: Create a new group
+              description: Create a new group
+              requestModels:
+                'application/json': GroupRequest
 
   GetImages:
     handler: src/functions/groups/getImages.handler
@@ -89,6 +93,20 @@ functions:
           method: get
           path: images/{imageId}
           cors: true
+  
+  CreateImage:
+    handler: src/functions/groups/createImage.handler
+    events:
+      - http:
+          method: get
+          path: images/{imageId}
+          cors: true
+          reqValidatorName: RequestBodyValidator
+          documentation:
+              summary: Create a new image
+              description: Create a new image
+              requestModels:
+                'application/json': ImageRequest
 
 resources:
   Resources:
