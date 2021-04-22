@@ -9,8 +9,14 @@ import { v4 as uuid } from 'uuid';
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 
+const s3 = new AWS.S3({
+  signatureVersion: 'v4',
+});
+
 const groupsTable = process.env.GROUPS_TABLE;
 const imagesTable = process.env.IMAGES_TABLE;
+const bucketName = process.env.IMAGES_S3_BUCKET;
+const urlExpiration = Number(process.env.SIGNED_URL_EXPIRATION);
 
 export const handler: APIGatewayProxyHandler = async (
   event: APIGatewayProxyEvent
@@ -34,6 +40,8 @@ export const handler: APIGatewayProxyHandler = async (
   const imageId = uuid();
   const newItem = await createImage(groupId, imageId, event);
 
+  const imageUrl = getUploadUrl(imageId);
+
   return {
     statusCode: 201,
     headers: {
@@ -41,6 +49,7 @@ export const handler: APIGatewayProxyHandler = async (
     },
     body: JSON.stringify({
       newItem,
+      uploadUrl: imageUrl,
     }),
   };
 };
@@ -69,6 +78,7 @@ async function createImage(
     timestamp: new Date().toISOString(),
     imageId,
     ...newImage,
+    imageUrl: `https://${bucketName}.s3.amazonaws.com/${imageId}`,
   };
 
   await docClient
@@ -79,4 +89,12 @@ async function createImage(
     .promise();
 
   return newItem;
+}
+
+function getUploadUrl(imageId: string) {
+  return s3.getSignedUrl('putObject', {
+    Bucket: bucketName,
+    Key: imageId,
+    Expires: urlExpiration,
+  });
 }
