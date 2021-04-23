@@ -38,6 +38,7 @@ provider:
     IMAGES_TABLE: Images-${self:provider.stage}
     IMAGE_ID_INDEX: ImageIdIndex
     IMAGES_S3_BUCKET: serverless-udagram-${self:provider.stage}
+    CONNECTIONS_TABLE: Connections-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
   lambdaHashingVersion: 20201221
@@ -63,6 +64,12 @@ provider:
         - s3:PutObject
         - s3:GetObject
       Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*
+    - Effect: Allow
+      Action:
+        - dynamodb:Scan
+        - dynamodb:PutItem
+        - dynamodb:DeleteItem
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.CONNECTIONS_TABLE}
 
 functions:
   GetGroups:
@@ -119,6 +126,18 @@ functions:
 
   SendUploadNotifications:
     handler: src/functions/s3/sendNotifications.handler
+  
+  ConnectHandler:
+    handler: src/functions/websocket/connect.handler
+    events:
+      - websocket:
+          route: $connect
+
+  DisconnectHandler:
+    handler: src/functions/websocket/disconnect.handler
+    events:
+      - websocket:
+          route: $disconnect
 
 resources:
   Resources:
@@ -167,6 +186,20 @@ resources:
                 ProjectionType: ALL
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:provider.environment.IMAGES_TABLE}
+
+    WebSocketConnectionsDynamoDBTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.CONNECTIONS_TABLE}
     
     AttachmentsBucket:
       Type: AWS::S3::Bucket
