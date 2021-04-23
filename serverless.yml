@@ -125,6 +125,10 @@ functions:
                 'application/json': ImageRequest
 
   SendUploadNotifications:
+    environment: # available only send notification
+      STAGE: ${self:provider.stage} 
+      API_ID:
+        Ref: WebsocketsApi
     handler: src/functions/s3/sendNotifications.handler
   
   ConnectHandler:
