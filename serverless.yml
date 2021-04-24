@@ -38,8 +38,9 @@ provider:
     GROUPS_TABLE: Groups-${self:provider.stage}
     IMAGES_TABLE: Images-${self:provider.stage}
     IMAGE_ID_INDEX: ImageIdIndex
-    IMAGES_S3_BUCKET: serverless-udagram-${self:provider.stage}
     CONNECTIONS_TABLE: Connections-${self:provider.stage}
+    IMAGES_S3_BUCKET: serverless-udagram-xeus085-${self:provider.stage}
+    THUMBBAILS_S3_BUCKET: serverless-udagram-thumbnail-xeus085-${self:provider.stage}
     SIGNED_URL_EXPIRATION: 300
 
   lambdaHashingVersion: 20201221
@@ -65,6 +66,10 @@ provider:
         - s3:PutObject
         - s3:GetObject
       Resource: arn:aws:s3:::${self:provider.environment.IMAGES_S3_BUCKET}/*
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+      Resource: arn:aws:s3:::${self:provider.environment.THUMBBAILS_S3_BUCKET}/*
     - Effect: Allow
       Action:
         - dynamodb:Scan
@@ -140,6 +145,19 @@ functions:
                 - Ref: AWS::Region
                 - Ref: AWS::AccountId
                 - ${self:custom.topicName}         
+          topicName: ${self:custom.topicName}
+
+  ResizeImage:
+    handler: src/functions/s3/resizeImage.handler
+    events:
+      - sns:
+          arn:
+            Fn::Join:
+              - ':'
+              - - arn:aws:sns
+                - Ref: AWS::Region
+                - Ref: AWS::AccountId
+                - ${self:custom.topicName}
           topicName: ${self:custom.topicName}
   
   ConnectHandler:
