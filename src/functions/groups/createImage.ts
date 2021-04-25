@@ -1,11 +1,9 @@
-import {
-  APIGatewayProxyHandler,
-  APIGatewayProxyEvent,
-  APIGatewayProxyResult,
-} from 'aws-lambda';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import 'source-map-support/register';
 import * as AWS from 'aws-sdk';
 import { v4 as uuid } from 'uuid';
+import * as middy from 'middy';
+import { cors } from 'middy/middlewares';
 
 const docClient = new AWS.DynamoDB.DocumentClient();
 
@@ -18,41 +16,38 @@ const imagesTable = process.env.IMAGES_TABLE;
 const bucketName = process.env.IMAGES_S3_BUCKET;
 const urlExpiration = Number(process.env.SIGNED_URL_EXPIRATION);
 
-export const handler: APIGatewayProxyHandler = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  console.log('Caller event', event);
-  const groupId = event.pathParameters.groupId;
-  const isValidGroupId = await isGroupExist(groupId);
+export const handler = middy(
+  async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    console.log('Caller event', event);
+    const groupId = event.pathParameters.groupId;
+    const isValidGroupId = await isGroupExist(groupId);
 
-  if (!isValidGroupId) {
+    if (!isValidGroupId) {
+      return {
+        statusCode: 404,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+        },
+        body: JSON.stringify({
+          error: 'Group does not exist',
+        }),
+      };
+    }
+
+    const imageId = uuid();
+    const newItem = await createImage(groupId, imageId, event);
+
+    const imageUrl = getUploadUrl(imageId);
+
     return {
-      statusCode: 404,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-      },
+      statusCode: 201,
       body: JSON.stringify({
-        error: 'Group does not exist',
+        newItem,
+        uploadUrl: imageUrl,
       }),
     };
   }
-
-  const imageId = uuid();
-  const newItem = await createImage(groupId, imageId, event);
-
-  const imageUrl = getUploadUrl(imageId);
-
-  return {
-    statusCode: 201,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-    },
-    body: JSON.stringify({
-      newItem,
-      uploadUrl: imageUrl,
-    }),
-  };
-};
+);
 
 async function isGroupExist(groupId: string) {
   const result = await docClient
@@ -98,3 +93,9 @@ function getUploadUrl(imageId: string) {
     Expires: urlExpiration,
   });
 }
+
+handler.use(
+  cors({
+    credentials: true,
+  })
+);
